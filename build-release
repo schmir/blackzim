@@ -1,0 +1,25 @@
+#! /usr/bin/env bash
+set -euo pipefail
+
+: "${GO:=go}"
+: "${VERSION:=}"
+: "${TARGETS:=linux-amd64 linux-arm linux-arm64 freebsd-amd64 openbsd-amd64}"
+
+if [[ -z "${VERSION}" ]]; then
+   VERSION=$(git describe --tags --always --abbrev=4 --dirty)
+fi
+
+
+mkdir -p release/tmp
+cd release/tmp
+for osarch in ${TARGETS}; do
+    IFS='-' read os arch <<< "${osarch}"
+    dir=blackzim-${os}-${arch}-${VERSION}
+    target=${dir}/blackzim
+    tarfile=../${dir}.tgz
+    echo "Building ${target}"
+    env GOARCH=${arch} GOOS=${os} ${GO} build -o ${target}  ../..
+    tar -czf ${tarfile} ${dir}
+done
+cd ../..
+rm -rf release/tmp

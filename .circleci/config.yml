@@ -1,0 +1,52 @@
+version: 2.1
+
+executors:
+  go:
+    docker:
+      - image: cimg/go:1.16
+        environment:
+          GO111MODULE: "on"
+jobs:
+  build:
+    executor: go
+    working_directory: ~/blackzim
+    steps:
+      - checkout:
+          path: ~/blackzim
+      - run: go build
+
+  publish-release:
+    executor: go
+    working_directory: ~/blackzim
+    steps:
+      - checkout:
+          path: ~/blackzim
+      - run: env VERSION=${CIRCLE_TAG} ./build-release
+      - run: go install github.com/tcnksm/ghr@v0.14.0
+      - run:
+          name: Upload binaries
+          command: |
+            ghr ${CIRCLE_TAG} release
+
+workflows:
+  version: 2
+  blackzim:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /^v\d+\.\d+/
+      - publish-release:
+          requires:
+            - build
+          context:
+            - upload-release
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+/
+# Local Variables:
+# compile-command: "circleci config validate"
+# projectile-project-compilation-cmd: "circleci config validate"
+# End:
